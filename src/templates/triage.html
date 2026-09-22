@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jev vs Laya — Ticket Triage Benchmark</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Jev vs Laya <span class="dim">/ support ticket triage</span></h1>
+  </header>
+
+  <section class="control-bar">
+    <div class="control-block">
+      <h2>Tickets</h2>
+      <div class="btn-row" id="count-select">
+        <button class="opt" data-value="20">20</button>
+        <button class="opt active" data-value="50">50</button>
+        <button class="opt" data-value="100">100</button>
+        <button class="opt" data-value="200">200</button>
+      </div>
+    </div>
+
+    <div class="control-block actions">
+      <button id="run-btn" class="start-btn">Run triage benchmark</button>
+    </div>
+  </section>
+
+  <div id="error-banner" class="error-banner hidden"></div>
+
+  <section class="bench-progress">
+    <div id="bench-status" class="bench-status">Idle — synthetic tickets are generated with known-correct labels, so accuracy is exact.</div>
+    <div class="progress-bar"><div id="bench-progress-fill" class="progress-fill"></div></div>
+  </section>
+
+  <section class="scoreboard">
+    {% for lane in lanes %}
+    <div class="score-card" data-lane="{{ lane }}">
+      <div class="score-name">{{ "Jev" if lane == "jev" else "Laya" }} <span class="tag">{{ "cloud" if lane == "jev" else "local" }}</span></div>
+      <div class="score-pct" id="score-pct-{{ lane }}">—</div>
+      <div class="score-frac" id="score-frac-{{ lane }}">0 / 0 correct decisions</div>
+      <div class="score-bar-track"><div id="score-bar-{{ lane }}" class="score-bar-fill lane-{{ lane }}"></div></div>
+      <div class="score-meta">
+        <span>avg confidence <b id="score-conf-{{ lane }}">—</b></span>
+        <span>avg latency <b id="score-latency-{{ lane }}">—</b></span>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="qtable-wrap">
+    <h2>Per-question breakdown</h2>
+    <table class="qtable" id="qtable">
+      <thead>
+        <tr>
+          <th>question</th>
+          <th>type</th>
+          <th>Jev accuracy</th>
+          <th>Laya accuracy</th>
+          <th>disagreements</th>
+          <th>head-to-head</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for qid, qtype in questions.items() %}
+        <tr data-question="{{ qid }}">
+          <td>{{ qid }}</td>
+          <td class="qtype">{{ qtype }}</td>
+          <td id="q-{{ qid }}-jev-acc">—</td>
+          <td id="q-{{ qid }}-laya-acc">—</td>
+          <td id="q-{{ qid }}-disagree">0</td>
+          <td id="q-{{ qid }}-h2h" class="h2h-cell">—</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="bench-feed-wrap ticket-feed-wrap">
+    <div class="feed-header">
+      <h2>Live tickets <span class="dim" id="ticket-label"></span></h2>
+      <div class="btn-row" id="type-filter">
+        <button class="opt active" data-value="all">All</button>
+        <button class="opt" data-value="choice">choice</button>
+        <button class="opt" data-value="noul">noul</button>
+        <button class="opt" data-value="score">score</button>
+      </div>
+    </div>
+    <div id="ticket-feed" class="ticket-feed"></div>
+  </section>
+</div>
+
+<script src="{{ url_for('static', filename='triage.js') }}"></script>
+</body>
+</html>
