@@ -2,8 +2,8 @@
 
 Ground truth has to be known by construction, not guessed at. Each ticket is
 assembled from independently chosen phrase banks -- which bank we draw from
-*is* the label -- so intent, urgency, frustration level, refund request, and
-churn risk are all unambiguous, even though the resulting message reads like
+*is* the label -- so intent, urgency, frustration level, impact scope, refund
+request, and churn risk are all unambiguous, even though the resulting message reads like
 a normal email.
 """
 import random
@@ -92,6 +92,24 @@ FRUSTRATION_BANKS = {
     ],
 }
 
+IMPACT_BANKS = {
+    0: [
+        "This is just for my own account.",
+        "It's only me who is affected by this.",
+        "I'm asking for myself personally.",
+    ],
+    1: [
+        "I'm asking on behalf of my whole team.",
+        "Everyone on my team is affected by this.",
+        "This matters for the whole team I manage.",
+    ],
+    2: [
+        "This matters for our entire company and our customers.",
+        "Our whole organization and our end customers are affected.",
+        "This impacts every department in our company, plus our clients.",
+    ],
+}
+
 REFUND_CLAUSES = [
     "Please refund the charge as soon as possible.",
     "I'd like my money back for this.",
@@ -117,6 +135,7 @@ ADDONS = ["API add-on", "priority support", "extra seats", "advanced analytics"]
 FRUSTRATION_WEIGHTS = [0.35, 0.30, 0.20, 0.15]
 LOW_STAKES_FRUSTRATION_WEIGHTS = [0.75, 0.25, 0.0, 0.0]
 URGENCY_WEIGHTS = [0.65, 0.20, 0.15]
+IMPACT_WEIGHTS = [0.40, 0.35, 0.25]
 LOW_STAKES_INTENTS = {"information", "other"}
 
 
@@ -147,12 +166,14 @@ def generate_ticket(rng):
     is_urgent = urgency_level >= 2
     refund_requested = False if low_stakes else rng.random() < (0.85 if intent == "refund" else 0.06)
     churn_risk = False if low_stakes else rng.random() < 0.25
+    impact_scope = rng.choices([0, 1, 2], weights=IMPACT_WEIGHTS)[0]
 
     parts = []
     greeting = rng.choice(GREETINGS)
     if greeting:
         parts.append(greeting)
     parts.append(body)
+    parts.append(rng.choice(IMPACT_BANKS[impact_scope]))
     if refund_requested:
         parts.append(rng.choice(REFUND_CLAUSES))
     if churn_risk:
@@ -172,7 +193,7 @@ def generate_ticket(rng):
             "intent": intent,
             "is_urgent": is_urgent,
             "frustration": frustration,
-            "urgency_level": urgency_level,
+            "impact_scope": impact_scope,
             "refund_requested": refund_requested,
             "churn_risk": churn_risk,
         },

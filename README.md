@@ -11,7 +11,7 @@ Each ticket is generated with its correct labels already known, so the accuracy 
 
 ## Features
 
-- **Live head-to-head scoreboard**: overall accuracy, average confidence and average latency for each model.
+- **Live head-to-head scoreboard**: overall accuracy and average confidence for each model.
 - **Per-question breakdown**: accuracy for each question, how often the two models disagreed, and which model was right when they did.
 - **Live ticket feed**: every ticket, what each model predicted, and the correct answer. You can filter by question type (`choice` / `noul` / `score`).
 - **Calibration and error data**: the final `done` event reports confidence-bucketed calibration and the mean absolute error for score questions.
@@ -19,14 +19,14 @@ Each ticket is generated with its correct labels already known, so the accuracy 
 
 ## What gets measured
 
-Every ticket is answered with a single call per model that asks all of these typed questions at once. The first five come from `laya.presets.triage_questions()`; `urgency_level` is added in [src/triage_engine.py](src/triage_engine.py).
+Every ticket is answered with a single call per model that asks all of these typed questions at once. The first five come from `laya.presets.triage_questions()`; `impact_scope` is added in [src/triage_engine.py](src/triage_engine.py).
 
 | Question | Type | Values |
 |----------|------|--------|
 | `intent` | choice | `refund`, `technical_help`, `billing_question`, `information`, `cancellation`, `other` |
 | `is_urgent` | noul (yes/no probability) | true / false |
 | `frustration` | score | 0 calm · 1 concerned · 2 annoyed · 3 angry |
-| `urgency_level` | score | 0 no time pressure · 1 needs attention soon · 2 blocking / hard deadline |
+| `impact_scope` | score | 0 just the sender · 1 the sender's team · 2 the whole company or its customers |
 | `refund_requested` | noul | true / false |
 | `churn_risk` | noul | true / false |
 
@@ -34,7 +34,7 @@ How each prediction is scored:
 
 - **choice**: the option the model picked.
 - **noul**: `true` if the probability is ≥ 0.5.
-- **score**: the expected value rounded to the nearest rubric level.
+- **score**: the rubric level with the highest probability. It is not the rounded expected value, which would push spread-out distributions toward the middle level.
 
 For calibration, "confidence" means the probability the model gave to the value it actually predicted. This is deliberately not each vendor's own `confidence` field, so the number means the same thing for all three question types.
 
@@ -137,9 +137,9 @@ Each SSE message is a JSON object with a `type` field:
 
 ## How the synthetic tickets are built
 
-[src/ticket_gen.py](src/ticket_gen.py) builds each message by picking from separate phrase banks for intent, refund request, churn threat, urgency and frustration. The bank a phrase came from **is** its label, so the correct answers are known without any manual labelling. The result still reads like a normal support email:
+[src/ticket_gen.py](src/ticket_gen.py) builds each message by picking from separate phrase banks for intent, impact scope, refund request, churn threat, urgency and frustration. The bank a phrase came from **is** its label, so the correct answers are known without any manual labelling. The result still reads like a normal support email:
 
-> Hi team, We were charged twice for our Pro plan last cycle. Please look into the duplicate charge. Please refund the charge as soon as possible. This needs to be resolved today. I'm getting pretty frustrated with these repeated issues. Thanks,
+> Hi team, We were charged twice for our Pro plan last cycle. Please look into the duplicate charge. I'm asking on behalf of my whole team. Please refund the charge as soon as possible. This needs to be resolved today. I'm getting pretty frustrated with these repeated issues. Thanks,
 
 Low-stakes intents (`information`, `other`) never include urgency, refund or churn phrases, and they skew toward low frustration.
 

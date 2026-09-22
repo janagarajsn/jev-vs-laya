@@ -6,12 +6,13 @@ same state -- no path-dependency to work around. laya.presets.triage_questions()
 bundles three question types at once (choice/noul/score) in a single call, so
 this exercises the full shape of the typed-decision API.
 
-`urgency_level` is added on top of the triage preset as a second, independent
-score-type question (graded time pressure, separate from the frustration
-score) -- with only one score question in the set, there's no way to tell
-whether a model's weakness is specific to "frustration" or a general pattern
-with score-type questions. Two independent score dimensions makes that
-answerable.
+`impact_scope` is added on top of the triage preset as a second, independent
+score-type question (how many people the issue affects, unrelated to tone or
+time pressure) -- with only one score question in the set, there's no way to
+tell whether a model's weakness is specific to "frustration" or a general
+pattern with score-type questions. Every level, including 0, is worded as
+something present and has a matching phrase planted in the ticket, so a miss
+can't be blamed on negated wording or on level 0 having nothing to match.
 """
 import random
 import time
@@ -25,10 +26,10 @@ LANES = ("jev", "laya")
 
 def _build_questions():
     questions = dict(triage_questions())
-    questions["urgency_level"] = {
+    questions["impact_scope"] = {
         "type": "score",
-        "instructions": "How urgent is the request in `message`?",
-        "criteria": ["no time pressure", "needs attention soon", "blocking issue or hard deadline"],
+        "instructions": "How many people does the issue in `message` affect?",
+        "criteria": ["just the sender personally", "the sender's team", "the whole company or its customers"],
     }
     return questions
 
@@ -52,10 +53,11 @@ def _pick_and_confidence(ans, qtype):
     if qtype == "noul":
         predicted = ans["noul"] >= 0.5
         return predicted, (ans["noul"] if predicted else 1.0 - ans["noul"])
-    # score: round the expected value to the nearest rubric level
-    n_levels = len(ans["probabilities"])
-    predicted = max(0, min(n_levels - 1, round(ans["score"])))
-    return predicted, ans["probabilities"].get(str(predicted), 0.0)
+    # score: the most likely rubric level. Rounding the expected value instead would
+    # drag a spread-out distribution toward the middle level, even when the model's
+    # own top pick is an extreme (e.g. {0: .55, 1: .32, 2: .13} -> E=0.58 -> 1).
+    level, prob = max(ans["probabilities"].items(), key=lambda kv: kv[1])
+    return int(level), prob
 
 
 def run_triage_stream(n_tickets, emit, seed=None):

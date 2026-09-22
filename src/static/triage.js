@@ -2,7 +2,7 @@
   const LANES = ["jev", "laya"];
   const NAME = { jev: "Jev", laya: "Laya" };
   const FRUSTRATION_LABELS = ["calm", "concerned", "annoyed", "angry"];
-  const URGENCY_LABELS = ["none", "soon", "blocking"];
+  const IMPACT_LABELS = ["personal", "team", "company"];
 
   const countSelect = document.getElementById("count-select");
   const typeFilterSelect = document.getElementById("type-filter");
@@ -21,7 +21,6 @@
       frac: document.getElementById(`score-frac-${lane}`),
       bar: document.getElementById(`score-bar-${lane}`),
       conf: document.getElementById(`score-conf-${lane}`),
-      latency: document.getElementById(`score-latency-${lane}`),
     };
   });
 
@@ -36,9 +35,9 @@
   let typeFilter = "all";
   const qTotals = {};
   LANES.forEach((lane) => (qTotals[lane] = {}));
-  const confSum = {}, confN = {}, latencySum = {}, latencyN = {};
+  const confSum = {}, confN = {};
   LANES.forEach((lane) => {
-    confSum[lane] = 0; confN[lane] = 0; latencySum[lane] = 0; latencyN[lane] = 0;
+    confSum[lane] = 0; confN[lane] = 0;
   });
 
   let currentTicket = null;
@@ -109,12 +108,11 @@
     });
 
     LANES.forEach((lane) => {
-      confSum[lane] = 0; confN[lane] = 0; latencySum[lane] = 0; latencyN[lane] = 0;
+      confSum[lane] = 0; confN[lane] = 0;
       scoreEls[lane].pct.textContent = "—";
       scoreEls[lane].frac.textContent = "0 / 0 correct decisions";
       scoreEls[lane].bar.style.width = "0%";
       scoreEls[lane].conf.textContent = "—";
-      scoreEls[lane].latency.textContent = "—";
     });
   }
 
@@ -164,7 +162,6 @@
       scoreEls[lane].frac.textContent = `${hits} / ${n} correct decisions`;
       scoreEls[lane].bar.style.width = `${pct}%`;
       scoreEls[lane].conf.textContent = confN[lane] > 0 ? `${((confSum[lane] / confN[lane]) * 100).toFixed(0)}%` : "—";
-      scoreEls[lane].latency.textContent = latencyN[lane] > 0 ? `${(latencySum[lane] / latencyN[lane]).toFixed(0)}ms` : "—";
     });
   }
 
@@ -182,8 +179,8 @@
     if (qid === "frustration" && typeof value === "number") {
       return `${value} (${FRUSTRATION_LABELS[value] || ""})`;
     }
-    if (qid === "urgency_level" && typeof value === "number") {
-      return `${value} (${URGENCY_LABELS[value] || ""})`;
+    if (qid === "impact_scope" && typeof value === "number") {
+      return `${value} (${IMPACT_LABELS[value] || ""})`;
     }
     return String(value);
   }
@@ -217,7 +214,11 @@
         if (p) {
           span.className = p.hit ? "pick-hit" : "pick-miss";
           const mark = p.hit ? "✓" : "✗";
-          span.textContent = `${NAME[lane]}: ${formatPredicted(qid, p.predicted)} ${mark}`;
+          span.textContent = `${NAME[lane]}: ${formatPredicted(qid, p.predicted)} ${mark} `;
+          const conf = document.createElement("span");
+          conf.className = "pick-conf";
+          conf.textContent = `(${(p.confidence * 100).toFixed(0)}%)`;
+          span.appendChild(conf);
         }
         row.appendChild(span);
       });
@@ -256,16 +257,6 @@
         ticketLabel.textContent = `— ticket ${event.ticket + 1} / ${event.total}`;
         benchProgressFill.style.width = `${(event.ticket / event.total) * 100}%`;
         currentTicket = { index: event.ticket, message: event.message, labels: event.labels, answers: {} };
-        break;
-
-      case "ticket_timing":
-        LANES.forEach((lane) => {
-          const ms = event.latency_ms[lane];
-          if (typeof ms === "number") {
-            latencySum[lane] += ms;
-            latencyN[lane] += 1;
-          }
-        });
         break;
 
       case "answer": {

@@ -204,7 +204,7 @@ header .dim { color: var(--dim); font-weight: 400; }
 
 .score-meta {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   font-size: 11.5px;
   color: var(--dim);
   margin-top: 10px;
@@ -308,3 +308,4 @@ header .dim { color: var(--dim); font-weight: 400; }
 .ticket-row .qname { color: var(--dim); }
 .ticket-row .pick-hit { color: var(--accent-2); }
 .ticket-row .pick-miss { color: var(--danger); }
+.ticket-row .pick-conf { color: var(--dim); }
