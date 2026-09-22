@@ -60,7 +60,7 @@ For calibration, "confidence" means the probability the model gave to the value 
 
 ### Prerequisites
 
-- Python 3.10+ (developed on 3.14)
+- Python 3.14+
 - A [typesafe.ai](https://console.typesafe.ai) API key, needed only for Jev
 - A Hugging Face access token, recommended for downloading Laya's weights
 - Enough disk space and RAM for a ModernBERT-large-based model; the first run downloads it
